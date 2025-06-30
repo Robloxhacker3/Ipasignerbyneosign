@@ -1,27 +1,47 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>GitHub IPA Signer 🚀</title>
+  <title>NeoSign IPA Signer 🔐</title>
   <style>
-    body { background: #1e1e1e; color: white; font-family: Arial; display: flex; justify-content: center; align-items: center; height: 100vh; flex-direction: column; }
+    body {
+      background: #181818; color: white; font-family: 'Segoe UI';
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; height: 100vh;
+    }
     h1 { color: #00ffff; }
-    input[type="text"] {
-      width: 400px; padding: 10px; border-radius: 8px; border: none; outline: none;
-      margin-top: 10px; background: #333; color: white;
+    form {
+      background: #222; padding: 20px; border-radius: 12px;
+      box-shadow: 0 0 20px #00ffff44;
+    }
+    input[type="file"] {
+      padding: 10px; background: #333; color: white;
+      border-radius: 8px; border: none;
     }
     button {
-      margin-top: 15px; padding: 10px 20px; border-radius: 8px;
-      background: #00ffff; color: black; font-weight: bold; cursor: pointer; border: none;
+      margin-top: 15px; padding: 10px 20px;
+      background: #00ffff; border: none;
+      color: black; font-weight: bold;
+      cursor: pointer; border-radius: 8px;
     }
-    .output { margin-top: 20px; }
+    .link {
+      margin-top: 20px;
+      color: #00ff88;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
-  <h1>NeoSign GitHub IPA Signer 🔐</h1>
-  <form action="sign.php" method="POST">
-    <input type="text" name="github_url" placeholder="Enter direct GitHub IPA URL..." required>
-    <br>
+  <h1>NeoSign Local IPA Signer 🚀</h1>
+  <form action="sign.php" method="POST" enctype="multipart/form-data">
+    <input type="file" name="ipa" accept=".ipa" required><br>
     <button type="submit">Sign IPA</button>
   </form>
+
+  <!-- If redirected back with ?file=signed_file.ipa -->
+  <?php if (isset($_GET['file'])): ?>
+    <div class="link">
+      ✅ Signed! <a href="signed/<?= htmlspecialchars($_GET['file']) ?>" download>Download Signed IPA</a>
+    </div>
+  <?php endif; ?>
 </body>
 </html>
