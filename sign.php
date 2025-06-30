@@ -4,48 +4,35 @@ $uploadDir = __DIR__ . "/uploads/";
 $signedDir = __DIR__ . "/signed/";
 $certPath = __DIR__ . "/certs/cert.p12";
 $profilePath = __DIR__ . "/certs/profile.mobileprovision";
-$certPass = "your_cert_password"; // 🔐 Replace this
+$certPass = "your_cert_password"; // Change this
 
 if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
 if (!is_dir($signedDir)) mkdir($signedDir, 0777, true);
 
-if ($_SERVER["REQUEST_METHOD"] === "POST" && !empty($_POST["github_url"])) {
-    $url = trim($_POST["github_url"]);
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["ipa"])) {
+    $ipa = $_FILES["ipa"];
+    $ipaTmpPath = $ipa["tmp_name"];
+    $ipaName = basename($ipa["name"]);
+    $uploadedPath = $uploadDir . time() . "_" . $ipaName;
 
-    if (!filter_var($url, FILTER_VALIDATE_URL) || !str_ends_with($url, ".ipa")) {
-        die("<div style='color:red;'>❌ Invalid GitHub IPA URL.</div>");
-    }
+    if (move_uploaded_file($ipaTmpPath, $uploadedPath)) {
+        $signedFileName = "signed_" . time() . "_" . $ipaName;
+        $signedFilePath = $signedDir . $signedFileName;
 
-    $ipaName = "downloaded_" . time() . ".ipa";
-    $ipaPath = $uploadDir . $ipaName;
+        // Sign with zsign
+        $cmd = escapeshellcmd("zsign -k '$certPath' -p '$certPass' -m '$profilePath' -o '$signedFilePath' '$uploadedPath'");
+        exec($cmd, $out, $code);
 
-    // Download IPA from GitHub
-    $ipaData = @file_get_contents($url);
-    if (!$ipaData) {
-        die("<div style='color:red;'>❌ Could not download IPA from GitHub. Make sure it's a direct link.</div>");
-    }
-    file_put_contents($ipaPath, $ipaData);
+        if ($code === 0) {
+            header("Location: index.html?file=" . urlencode($signedFileName));
+            exit;
+        } else {
+            echo "<div style='color:red;'>❌ Signing failed. Check cert or provisioning profile.</div>";
+        }
 
-    // Output path
-    $signedName = "signed_" . time() . ".ipa";
-    $signedPath = $signedDir . $signedName;
-
-    // Sign using zsign
-    $cmd = escapeshellcmd("zsign -k '$certPath' -p '$certPass' -m '$profilePath' -o '$signedPath' '$ipaPath'");
-    exec($cmd, $out, $returnCode);
-
-    if ($returnCode === 0) {
-        echo "<div style='text-align:center; color:lime; font-family:sans-serif;'>
-              ✅ Signed Successfully!<br><br>
-              <a href='signed/$signedName' download>Download Signed IPA</a>
-              </div>";
     } else {
-        echo "<div style='color:red;'>❌ Signing failed. Check ZSign, cert, or profile.</div>";
+        echo "<div style='color:red;'>❌ Failed to upload IPA.</div>";
     }
 } else {
-    echo "<div style='color:red;'>❌ No GitHub URL provided.</div>";
-}
-
-function str_ends_with($haystack, $needle) {
-    return substr($haystack, -strlen($needle)) === $needle;
+    echo "<div style='color:red;'>❌ Invalid request.</div>";
 }
